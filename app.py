@@ -24,18 +24,18 @@ st.markdown(
 @st.cache_data
 
 def load_data():
-    gpkg = "Dados_Feijo.gpkg"
+    gpkg = "Feijo.gpkg"
 
     locais = gpd.read_file(gpkg, layer="Area_WGS").to_crs(31979)
     desmat = gpd.read_file(gpkg, layer="DesmatamentoWGS").to_crs(31979)
     feijo = gpd.read_file(gpkg, layer="FeijoWGS").to_crs(31979)
     intersect = gpd.read_file(gpkg, layer="Intersec_Dissolvido_WGS").to_crs(31979)
-    Brasil = gpd.read_file(gpkg, layer="BrasilWGS")
-
-    return locais, desmat, feijo, intersect, Brasil
 
 
-locais, desmat, feijo, intersect, Brasil = load_data()
+    return locais, desmat, feijo, intersect
+
+
+locais, desmat, feijo, intersect = load_data()
 
 
 # SIDEBAR
@@ -144,7 +144,8 @@ intersect_filt = intersect[
 intersec_wgs = intersect_filt.to_crs(4326)
 
 
-m = folium.Map(tiles="Esri.WorldImagery")
+m = folium.Map(tiles=None)
+
 
 if codigo != "Todos" and len(locais_wgs) > 0:
     bounds = locais_wgs.total_bounds
@@ -159,11 +160,6 @@ else:
         [bounds[3], bounds[2]]
     ])
 
-folium.GeoJson(
-    Brasil,
-    name="País",
-    style_function=lambda x: {"fill": False, "color": "black", "weight": 2}
-).add_to(m)
 
 folium.GeoJson(
     feijo_wgs,
@@ -201,6 +197,9 @@ folium.GeoJson(
     style_function=lambda x: {"fillOpacity": 0.2}
 ).add_to(m)
 
+
+folium.TileLayer("OpenStreetMap", name="Mapa").add_to(m)
+folium.TileLayer("Esri.WorldImagery", name="Satélite").add_to(m)
 folium.LayerControl().add_to(m)
 
 st_folium(m, width=1400, height=600)
