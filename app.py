@@ -6,7 +6,17 @@ import folium
 
 st.set_page_config(layout="wide")
 
-st.title("🌳 Análise de Desmatamento — CAR Feijó (AC)")
+col1, col2, col3 = st.columns([3,1,3])
+
+with col2:
+    st.image("logo.png", width=150)
+
+st.markdown(
+    "<h1 style='text-align:center;'>🌳 Análise de Desmatamento — CAR Feijó (AC)</h1>",
+    unsafe_allow_html=True
+)
+
+
 
 # =========================
 # CACHE (evita recarregar shp)
@@ -20,11 +30,12 @@ def load_data():
     desmat = gpd.read_file(gpkg, layer="DesmatamentoWGS").to_crs(31979)
     feijo = gpd.read_file(gpkg, layer="FeijoWGS").to_crs(31979)
     intersect = gpd.read_file(gpkg, layer="Intersec_Dissolvido_WGS").to_crs(31979)
+    Brasil = gpd.read_file(gpkg, layer="BrasilWGS")
 
-    return locais, desmat, feijo, intersect
+    return locais, desmat, feijo, intersect, Brasil
 
 
-locais, desmat, feijo, intersect = load_data()
+locais, desmat, feijo, intersect, Brasil = load_data()
 
 
 # SIDEBAR
@@ -124,6 +135,7 @@ locais_wgs = locais_join[cols_mapa].to_crs(4326)
 desmat_wgs = desmat.to_crs(4326)
 feijo_wgs = feijo.to_crs(4326)
 
+
 codigos_validos = locais_filt["Codigo"].astype(str).unique()
 
 intersect_filt = intersect[
@@ -132,7 +144,7 @@ intersect_filt = intersect[
 intersec_wgs = intersect_filt.to_crs(4326)
 
 
-m = folium.Map()
+m = folium.Map(tiles="Esri.WorldImagery")
 
 if codigo != "Todos" and len(locais_wgs) > 0:
     bounds = locais_wgs.total_bounds
@@ -147,6 +159,11 @@ else:
         [bounds[3], bounds[2]]
     ])
 
+folium.GeoJson(
+    Brasil,
+    name="País",
+    style_function=lambda x: {"fill": False, "color": "black", "weight": 2}
+).add_to(m)
 
 folium.GeoJson(
     feijo_wgs,
