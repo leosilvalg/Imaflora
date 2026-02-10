@@ -14,10 +14,12 @@ st.title("🌳 Análise de Desmatamento — CAR Feijó (AC)")
 @st.cache_data
 
 def load_data():
-    locais = gpd.read_file("Area_WGS.shp").to_crs(31979)
-    desmat = gpd.read_file("DesmatamentoWGS.shp").to_crs(31979)
-    feijo = gpd.read_file("FeijoWGS.shp").to_crs(31979)
-    intersect = gpd.read_file("Intersec_Dissolvido_WGS.shp").to_crs(31979)
+    gpkg = "Dados_Feijo.gpkg"
+
+    locais = gpd.read_file(gpkg, layer="Area_WGS").to_crs(31979)
+    desmat = gpd.read_file(gpkg, layer="DesmatamentoWGS").to_crs(31979)
+    feijo = gpd.read_file(gpkg, layer="FeijoWGS").to_crs(31979)
+    intersect = gpd.read_file(gpkg, layer="Intersec_Dissolvido_WGS").to_crs(31979)
 
     return locais, desmat, feijo, intersect
 
@@ -74,19 +76,19 @@ st.subheader("Processando áreas...")
 
 #intersec = intersect
 
-intersect["Area Desmatada"] = intersect.geometry.area / 10000
+intersect["Area Desmatada (ha)"] = intersect.geometry.area / 10000
 
 area_por_imovel = (
-    intersect.groupby("Codigo")["Area Desmatada"]
+    intersect.groupby("Codigo")["Area Desmatada (ha)"]
     .sum()
     .reset_index()
 )
 
 locais_join = locais_filt.merge(area_por_imovel, on="Codigo", how="left")
-locais_join["Area Desmatada"] = (locais_join["Area Desmatada"].fillna(0)).round(2)
+locais_join["Area Desmatada (ha)"] = (locais_join["Area Desmatada (ha)"].fillna(0)).round(2)
 
-locais_join["Percentual Desmatado"] = (
-    locais_join["Area Desmatada"] / locais_join["Area"] * 100
+locais_join["Percentual de Area Desmatada (%)"] = (
+    locais_join["Area Desmatada (ha)"] / locais_join["Area"] * 100
 ).round(0).astype(int).astype(str) + "%"
 
 
@@ -99,7 +101,7 @@ desmat_feijo = gpd.overlay(desmat_diss, feijo, how="intersection")
 total_municipio = desmat_feijo.geometry.area.sum() / 10000
 
 # total nas fazendas
-total_fazendas = locais_join["Area Desmatada"].sum()
+total_fazendas = locais_join["Area Desmatada (ha)"].sum()
 
 col1, col2, col3 = st.columns(3)
 
@@ -117,7 +119,7 @@ mostrar_sobreposicao = st.checkbox(
     value=False
 )
 
-cols_mapa = ["Codigo", "Area Desmatada", "Percentual Desmatado", "geometry"]
+cols_mapa = ["Codigo", "Area Desmatada (ha)", "Percentual de Area Desmatada (%)", "geometry"]
 locais_wgs = locais_join[cols_mapa].to_crs(4326)
 desmat_wgs = desmat.to_crs(4326)
 feijo_wgs = feijo.to_crs(4326)
@@ -176,7 +178,7 @@ folium.GeoJson(
     locais_wgs,
     name="Fazendas",
     tooltip=folium.GeoJsonTooltip(
-        fields=["Codigo", "Area Desmatada", "Percentual Desmatado"],
+        fields=["Codigo", "Area Desmatada (ha)", "Percentual de Area Desmatada (%)"],
         aliases=["Imóvel:", "Desmat (ha):", "% Desmat:"]
     ),
     style_function=lambda x: {"fillOpacity": 0.2}
@@ -220,8 +222,8 @@ st.subheader("Resumo Individual por Propriedade")
 
 st.dataframe(
     locais_join[
-        ["Codigo", "Condicao", "Classe", "Area", "Area Desmatada", "Percentual Desmatado"]
-    ].sort_values("Area Desmatada", ascending=False),
+        ["Codigo", "Condicao", "Classe", "Area", "Area Desmatada (ha)", "Percentual de Area Desmatada (%)"]
+    ].sort_values("Area Desmatada (ha)", ascending=False),
     use_container_width=True
 )
 
